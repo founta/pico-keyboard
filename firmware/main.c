@@ -31,6 +31,8 @@ uint8_t key_codes[MAX_NUM_PRESSES] = {HID_KEY_NONE};
 uint8_t num_keys_pressed = 0;
 bool idle = false;
 
+bool can_resume = false;
+
 void modif(uint8_t m)
 {
   modifier_flags |= m;
@@ -115,7 +117,7 @@ void handle_hid()
   //remote wakeup
   if (tud_suspended())
   {
-    if (num_keys_pressed != 0)
+    if (num_keys_pressed != 0 && can_resume)
     {
       tud_remote_wakeup();
     }
@@ -262,7 +264,8 @@ void tud_umount_cb(void)
 // Within 7ms, device must draw an average of current less than 2.5 mA from bus
 void tud_suspend_cb(bool remote_wakeup_en)
 {
-  (void) remote_wakeup_en;
+  can_resume = remote_wakeup_en;
+
   poll_interval_ms = LONG_POLL_INTERVAL_MS;
   gpio_put(POWER_LED, false);
 }
