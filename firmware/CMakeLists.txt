@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
+set(PICO_BOARD pico_w)
+
 # initialize pico-sdk from submodule
 # note: this must happen before project()
 include(pico_sdk_import.cmake)
@@ -20,7 +22,10 @@ target_include_directories(keyboard_fw PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(keyboard_fw PUBLIC pico_stdlib pico_unique_id tinyusb_device tinyusb_board)
+target_link_libraries(keyboard_fw PUBLIC 
+    pico_stdlib pico_unique_id 
+    tinyusb_device tinyusb_board
+    pico_cyw43_arch_none)
 
 # pico_enable_stdio_usb(keyboard_fw 1)
 # pico_enable_stdio_uart(keyboard_fw 0)

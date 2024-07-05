@@ -6,6 +6,8 @@
 #include "tusb.h"
 #include "usb_descriptors.h"
 
+#include "pico/cyw43_arch.h"
+
 #define DEFAULT_POLL_INTERVAL_MS (1)
 #define LONG_POLL_INTERVAL_MS (50)
 uint16_t poll_interval_ms = DEFAULT_POLL_INTERVAL_MS;
@@ -55,6 +57,7 @@ void press(uint8_t k)
 // };
 
 //TODO Fn key support
+//TODO macros
 void (*kb_func[num_rows][num_cols]) (uint8_t) = {
   {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press},
   {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , &press},
@@ -174,17 +177,27 @@ void led_init()
 
 int main()
 {
-  //board_init(); // TUSB's board init. don't do this. all it does for rp2040 without PIO defined is configure UART
-  tusb_init();
-
   keyboard_gpio_init();
   led_init();
 
-  while (true)
+  //check if the board is USB-powered or not. if USB powered, assume that we want USB HID mode.
+  cyw43_arch_init();
+  bool usb_bus_powered = cyw43_arch_gpio_get(CYW43_WL_GPIO_VBUS_PIN);
+
+  if (usb_bus_powered)
   {
-    tud_task();
-    handle_hid();
+    cyw43_arch_deinit();
+    //board_init(); // TUSB's board init. don't do this. all it does for rp2040 without PIO defined is configure UART
+    tusb_init();
+
+    while (true)
+    {
+      tud_task();
+      handle_hid();
+    }
   }
+
+
 }
 
 // the below are borrowed and adapted from https://github.com/raspberrypi/pico-examples/blob/master/usb/device/dev_hid_composite/main.c
