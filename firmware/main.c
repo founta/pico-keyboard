@@ -274,5 +274,4 @@ void tud_suspend_cb(bool remote_wakeup_en)
 void tud_resume_cb(void)
 {
   poll_interval_ms = DEFAULT_POLL_INTERVAL_MS;
-  gpio_put(POWER_LED, true);
 }
