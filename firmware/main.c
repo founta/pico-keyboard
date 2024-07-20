@@ -72,9 +72,11 @@ uint8_t kb_vals[num_rows][num_cols] = {
   {HID_KEY_TAB, HID_KEY_Q, HID_KEY_W, HID_KEY_E, HID_KEY_R, HID_KEY_T, HID_KEY_Y, HID_KEY_U, HID_KEY_I, HID_KEY_O, HID_KEY_P, HID_KEY_BRACKET_LEFT, HID_KEY_BRACKET_RIGHT, HID_KEY_BACKSLASH, 0, HID_KEY_PAGE_UP},
   {HID_KEY_CAPS_LOCK, HID_KEY_A, HID_KEY_S, HID_KEY_D, HID_KEY_F, HID_KEY_G, HID_KEY_H, HID_KEY_J, HID_KEY_K, HID_KEY_L, HID_KEY_SEMICOLON, HID_KEY_APOSTROPHE, HID_KEY_ENTER, 0, 0, HID_KEY_PAGE_DOWN},
   {KEYBOARD_MODIFIER_LEFTSHIFT, HID_KEY_Z, HID_KEY_X, HID_KEY_C, HID_KEY_V, HID_KEY_B, HID_KEY_N, HID_KEY_M, HID_KEY_COMMA, HID_KEY_PERIOD, HID_KEY_SLASH, 0, KEYBOARD_MODIFIER_RIGHTSHIFT, HID_KEY_ARROW_UP, 0, HID_KEY_END},
-  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_APPLICATION, KEYBOARD_MODIFIER_LEFTALT, HID_KEY_SPACE, 0, 0, 0, 0, KEYBOARD_MODIFIER_RIGHTALT, 0, KEYBOARD_MODIFIER_RIGHTCTRL, 0, HID_KEY_ARROW_LEFT, HID_KEY_ARROW_DOWN, 0, HID_KEY_ARROW_RIGHT}
+  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_GUI_LEFT, KEYBOARD_MODIFIER_LEFTALT, HID_KEY_SPACE, 0, 0, 0, 0, KEYBOARD_MODIFIER_RIGHTALT, 0, KEYBOARD_MODIFIER_RIGHTCTRL, 0, HID_KEY_ARROW_LEFT, HID_KEY_ARROW_DOWN, 0, HID_KEY_ARROW_RIGHT}
 };
-//note HID_KEY_GRAVE for ` and ~ . HID_KEY_APPLICATION == windows key
+//note HID_KEY_GRAVE for ` and ~ . HID_KEY_GUI_LEFT == windows key
+
+uint8_t kb_buf[num_rows][num_cols] = {0};
 
 void scan_kb_matrix()
 {
@@ -92,11 +94,19 @@ void scan_kb_matrix()
     {
       char col = cols[j];
 
-      void (*func)(uint8_t) = kb_func[i][j];
-      if (func && gpio_get(col))
+      //8 ms debouncing
+      // this rejects spurious key up and does not introduce a delay in reporting the keypress
+      kb_buf[i][j] = kb_buf[i][j] << 1;
+      kb_buf[i][j] |= gpio_get(col);
+      if (kb_buf[i][j])
       {
-        func(kb_vals[i][j]);
+        void (*func)(uint8_t) = kb_func[i][j];
+        if (func)
+        {
+          func(kb_vals[i][j]);
+        }
       }
+
     }
     gpio_put(row, false);
   }
