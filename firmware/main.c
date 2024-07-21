@@ -140,9 +140,9 @@ void handle_hid()
     //send USB HID report
     if (tud_hid_ready())
     {
-      if (num_keys_pressed != 0)
+      if (num_keys_pressed != 0 || modifier_flags != 0)
       {
-        tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier_flags, key_codes);
+        tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier_flags, (num_keys_pressed != 0) ? key_codes : NULL);
         idle = false;
       }
       else
