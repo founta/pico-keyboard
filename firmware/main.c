@@ -272,12 +272,15 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
 // Invoked when device is mounted
 void tud_mount_cb(void)
 {
+  poll_interval_ms = DEFAULT_POLL_INTERVAL_MS;
   gpio_put(POWER_LED, true);
 }
 
 // Invoked when device is unmounted
 void tud_umount_cb(void)
 {
+  poll_interval_ms = LONG_POLL_INTERVAL_MS;
+
   gpio_put(POWER_LED, false);
   gpio_put(CAPS_LED, false);
 }
@@ -291,6 +294,7 @@ void tud_suspend_cb(bool remote_wakeup_en)
 
   poll_interval_ms = LONG_POLL_INTERVAL_MS;
   gpio_put(POWER_LED, false);
+  gpio_put(CAPS_LED, false);
 }
 
 // Invoked when usb bus is resumed
