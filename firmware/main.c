@@ -6,8 +6,6 @@
 #include "tusb.h"
 #include "usb_descriptors.h"
 
-#include "pico/cyw43_arch.h"
-
 #define DEFAULT_POLL_INTERVAL_MS (1)
 #define LONG_POLL_INTERVAL_MS (50)
 uint16_t poll_interval_ms = DEFAULT_POLL_INTERVAL_MS;
@@ -16,20 +14,20 @@ uint16_t poll_interval_ms = DEFAULT_POLL_INTERVAL_MS;
 #define CAPS_LED (22)
 
 const char rows[] = {
-  0,1,2,3,4,5
+  0,1,2,3,4
 };
-#define num_rows (6)
+#define num_rows (5)
 
 const char cols[] = {
-  6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21
+  5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
 };
-#define num_cols (16)
+#define num_cols (18)
 
 uint8_t modifier_flags = 0;
 
 //you can only press 6 keys simultaneously. should be ok
 #define MAX_NUM_PRESSES (6)
-uint8_t key_codes[MAX_NUM_PRESSES] = {HID_KEY_NONE};
+uint8_t key_codes[MAX_NUM_PRESSES] = {0};//{HID_KEY_NONE};
 uint8_t num_keys_pressed = 0;
 bool idle = false;
 
@@ -47,34 +45,64 @@ void press(uint8_t k)
   key_codes[num_keys_pressed++] = k;
 }
 
+bool fn_pressed = false;
+void fn(uint8_t val)
+{
+  (void) val;
+  fn_pressed = true;
+}
+
+
 // const char* kb[num_rows][num_cols] = {
-//   {"esc"   , "f1" , "f2" , "f3"   , "f4", "f5", "f6", "f7", "f8" , "f9", "f10"  , "f11"   , "f12"   , "prtsc"    , "insert", "delete"},
-//   {"~"     , "1"  , "2"  , "3"    , "4" , "5" , "6" , "7" , "8"  , "9" , "0"    , "-"     , "="     , "backspace", "macro1", "home"  },
-//   {"tab"   , "q"  , "w"  , "e"    , "r" , "t" , "y" , "u" , "i"  , "o" , "p"    , "["     , "]"     , "\\"       , "macro2", "pg up" },
-//   {"caps"  , "a"  , "s"  , "d"    , "f" , "g" , "h" , "j" , "k"  , "l" , ";"    , "'"     , "enter" , "macro3"   , "macro4", "pg dn" },
-//   {"lshift", "z"  , "x"  , "c"    , "v" , "b" , "n" , "m" , ","  , "." , "/"    , "macro5", "rshift", "up"       , "macro6", "end"   },
-//   {"lctrl" , "win", "alt", "space", "--", "--", "--", "--", "alt", "fn", "rctrl", "macro7", "left"  , "down"     , "macro8", "right" }
+//{"esc" , "9"   , "0"   , "1"   , "5"   , "7"   , ""    , "6"   , "2"   , "3"   , "8"   , "4"   , "del" , ""    , ""    , ""    , ""    , "" },
+//{"caps", "j"   , "f"   , "m"   , "p"   , "v"   ,"prnts", ";"   , "`"   , "z"   , "/"   , "'"   , "\\"   , ""    , ""    , ""    , ""    , "" },
+//{"alt" , "r"   , "s"   , "n"   , "d"   , "b"   ,"fn"   , "-"   , "a"   , "e"   , "i"   , "h"   , "q"   , ""    , ""    , ""    , ""    , "" },
+//{""    , ""    , "g"   , "l"   , "c"   , "w"   ,"bkspc", "="   , "u"   , "o"   , "y"   , ""    , ""    , ""    , ""    , ""    , ""    , "" },
+//{"ctrl", "x"   , "<"   , ">"   ,"shift", "tab" , "t"   ,"space","enter", "["   , "]"   , "k"   , "code", ""    , ""    , ""    , ""    , "" },
 // };
 
 //TODO Fn key support
 //TODO macros
 void (*kb_func[num_rows][num_cols]) (uint8_t) = {
-  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press},
-  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , &press},
-  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , &press},
-  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , &press},
-  {&modif, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , &modif, &press, NULL  , &press},
-  {&modif, &press, &modif, &press, NULL  , NULL  , NULL  , NULL  , &modif, NULL  , &modif, NULL  , &press, &press, NULL  , &press}
+  {&press, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
+  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
+  {&modif, &press, &press, &press, &press, &press, &fn   , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
+  {NULL  , NULL  , &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL  , NULL  , NULL},
+  {&modif, &press, &press, &press, &modif, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
 };
-uint8_t kb_vals[num_rows][num_cols] = {
-  {HID_KEY_ESCAPE, HID_KEY_F1, HID_KEY_F2, HID_KEY_F3, HID_KEY_F4, HID_KEY_F5, HID_KEY_F6, HID_KEY_F7, HID_KEY_F8, HID_KEY_F9, HID_KEY_F10, HID_KEY_F11, HID_KEY_F12, HID_KEY_PRINT_SCREEN, HID_KEY_INSERT, HID_KEY_DELETE},
-  {HID_KEY_GRAVE, HID_KEY_1, HID_KEY_2, HID_KEY_3, HID_KEY_4, HID_KEY_5, HID_KEY_6, HID_KEY_7, HID_KEY_8, HID_KEY_9, HID_KEY_0, HID_KEY_MINUS, HID_KEY_EQUAL, HID_KEY_BACKSPACE, 0, HID_KEY_HOME},
-  {HID_KEY_TAB, HID_KEY_Q, HID_KEY_W, HID_KEY_E, HID_KEY_R, HID_KEY_T, HID_KEY_Y, HID_KEY_U, HID_KEY_I, HID_KEY_O, HID_KEY_P, HID_KEY_BRACKET_LEFT, HID_KEY_BRACKET_RIGHT, HID_KEY_BACKSLASH, 0, HID_KEY_PAGE_UP},
-  {HID_KEY_CAPS_LOCK, HID_KEY_A, HID_KEY_S, HID_KEY_D, HID_KEY_F, HID_KEY_G, HID_KEY_H, HID_KEY_J, HID_KEY_K, HID_KEY_L, HID_KEY_SEMICOLON, HID_KEY_APOSTROPHE, HID_KEY_ENTER, 0, 0, HID_KEY_PAGE_DOWN},
-  {KEYBOARD_MODIFIER_LEFTSHIFT, HID_KEY_Z, HID_KEY_X, HID_KEY_C, HID_KEY_V, HID_KEY_B, HID_KEY_N, HID_KEY_M, HID_KEY_COMMA, HID_KEY_PERIOD, HID_KEY_SLASH, 0, KEYBOARD_MODIFIER_RIGHTSHIFT, HID_KEY_ARROW_UP, 0, HID_KEY_END},
-  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_GUI_LEFT, KEYBOARD_MODIFIER_LEFTALT, HID_KEY_SPACE, 0, 0, 0, 0, KEYBOARD_MODIFIER_RIGHTALT, 0, KEYBOARD_MODIFIER_RIGHTCTRL, 0, HID_KEY_ARROW_LEFT, HID_KEY_ARROW_DOWN, 0, HID_KEY_ARROW_RIGHT}
-};
+
+#define KB_MATRIX { \
+  {HID_KEY_ESCAPE            , HID_KEY_9, HID_KEY_0    , HID_KEY_1     , HID_KEY_5                  , HID_KEY_7  , 0                   , HID_KEY_6        , HID_KEY_2        , HID_KEY_3           , HID_KEY_8            , HID_KEY_4         , HID_KEY_DELETE   , 0, 0, 0, 0, 0}, \
+  {HID_KEY_CAPS_LOCK         , HID_KEY_J, HID_KEY_F    , HID_KEY_M     , HID_KEY_P                  , HID_KEY_V  , HID_KEY_PRINT_SCREEN, HID_KEY_SEMICOLON, HID_KEY_GRAVE    , HID_KEY_Z           , HID_KEY_SLASH        , HID_KEY_APOSTROPHE, HID_KEY_BACKSLASH, 0, 0, 0, 0, 0}, \
+  {KEYBOARD_MODIFIER_LEFTALT , HID_KEY_R, HID_KEY_S    , HID_KEY_N     , HID_KEY_D                  , HID_KEY_B  , 0                   , HID_KEY_MINUS    , HID_KEY_A        , HID_KEY_E           , HID_KEY_I            , HID_KEY_H         , HID_KEY_Q        , 0, 0, 0, 0, 0}, \
+  {0                         , 0        , HID_KEY_G    , HID_KEY_L     , HID_KEY_C                  , HID_KEY_W  , HID_KEY_BACKSPACE   , HID_KEY_EQUAL    , HID_KEY_U        , HID_KEY_O           , HID_KEY_Y            , 0                 , 0                , 0, 0, 0, 0, 0}, \
+  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_X, HID_KEY_COMMA, HID_KEY_PERIOD, KEYBOARD_MODIFIER_LEFTSHIFT, HID_KEY_TAB, HID_KEY_TAB         , HID_KEY_SPACE    , HID_KEY_ENTER    , HID_KEY_BRACKET_LEFT, HID_KEY_BRACKET_RIGHT, HID_KEY_K         , HID_KEY_GUI_LEFT , 0, 0, 0, 0, 0}  \
+}
 //note HID_KEY_GRAVE for ` and ~ . HID_KEY_GUI_LEFT == windows key
+
+uint8_t kb_vals[num_rows][num_cols] = KB_MATRIX;
+
+// by default, keys act the same as usual while the function key is pressed
+uint8_t fn_vals[num_rows][num_cols] = KB_MATRIX;
+
+void init_fn_vals()
+{
+  //number keys turn into corresponding function keys
+  fn_vals[0][1]  = HID_KEY_F9;
+  fn_vals[0][2]  = HID_KEY_F10;
+  fn_vals[0][3]  = HID_KEY_F1;
+  fn_vals[0][4]  = HID_KEY_F5;
+  fn_vals[0][5]  = HID_KEY_F7;
+  fn_vals[0][7]  = HID_KEY_F6;
+  fn_vals[0][8]  = HID_KEY_F2;
+  fn_vals[0][9]  = HID_KEY_F3;
+  fn_vals[0][10] = HID_KEY_F8;
+  fn_vals[0][11] = HID_KEY_F4;
+  //escape becomes f11
+  fn_vals[0][0] = HID_KEY_F11;
+  //del becomes F12
+  fn_vals[0][12] = HID_KEY_F12;
+}
 
 uint8_t kb_buf[num_rows][num_cols] = {0};
 
@@ -84,6 +112,8 @@ void scan_kb_matrix()
     key_codes[i] = 0;
   num_keys_pressed = 0;
   modifier_flags = 0;
+  
+  bool fn_pressed_this_time = false;
 
   for (int i = 0; i < num_rows; ++i)
   {
@@ -103,13 +133,19 @@ void scan_kb_matrix()
         void (*func)(uint8_t) = kb_func[i][j];
         if (func)
         {
-          func(kb_vals[i][j]);
+          if (func == &fn)
+            fn_pressed_this_time = true;
+
+          func(fn_pressed ? fn_vals[i][j] : kb_vals[i][j]);
         }
       }
 
     }
     gpio_put(row, false);
   }
+
+  if (!fn_pressed_this_time)
+    fn_pressed = false;
 }
 
 absolute_time_t last_update_start_time = {0}; //nil_time is {0}
@@ -187,24 +223,17 @@ void led_init()
 
 int main()
 {
+  init_fn_vals();
   keyboard_gpio_init();
-  led_init();
+  //led_init();
 
-  //check if the board is USB-powered or not. if USB powered, assume that we want USB HID mode.
-  cyw43_arch_init();
-  bool usb_bus_powered = cyw43_arch_gpio_get(CYW43_WL_GPIO_VBUS_PIN);
+  //board_init(); // TUSB's board init. don't do this. all it does for rp2040 without PIO defined is configure UART
+  tusb_init();
 
-  if (usb_bus_powered)
+  while (true)
   {
-    cyw43_arch_deinit();
-    //board_init(); // TUSB's board init. don't do this. all it does for rp2040 without PIO defined is configure UART
-    tusb_init();
-
-    while (true)
-    {
-      tud_task();
-      handle_hid();
-    }
+    tud_task();
+    handle_hid();
   }
 
 
