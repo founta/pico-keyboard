@@ -46,12 +46,6 @@ void press(uint8_t k)
 }
 
 bool fn_pressed = false;
-void fn(uint8_t val)
-{
-  (void) val;
-  fn_pressed = true;
-}
-
 
 // const char* kb[num_rows][num_cols] = {
 //{"esc" , "9"   , "0"   , "1"   , "5"   , "7"   , ""    , "6"   , "2"   , "3"   , "8"   , "4"   , "del" , ""    , ""    , ""    , ""    , "" },
@@ -66,7 +60,7 @@ void fn(uint8_t val)
 void (*kb_func[num_rows][num_cols]) (uint8_t) = {
   {&press, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
   {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
-  {&modif, &press, &press, &press, &press, &press, &fn   , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
+  {&modif, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
   {NULL  , NULL  , &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL  , NULL  , NULL},
   {&modif, &press, &press, &press, &modif, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
 };
@@ -113,8 +107,6 @@ void scan_kb_matrix()
   num_keys_pressed = 0;
   modifier_flags = 0;
   
-  bool fn_pressed_this_time = false;
-
   for (int i = 0; i < num_rows; ++i)
   {
     char row = rows[i];
@@ -133,9 +125,6 @@ void scan_kb_matrix()
         void (*func)(uint8_t) = kb_func[i][j];
         if (func)
         {
-          if (func == &fn)
-            fn_pressed_this_time = true;
-
           func(fn_pressed ? fn_vals[i][j] : kb_vals[i][j]);
         }
       }
@@ -144,8 +133,9 @@ void scan_kb_matrix()
     gpio_put(row, false);
   }
 
-  if (!fn_pressed_this_time)
-    fn_pressed = false;
+  int fn_row = 2;
+  int fn_col = 6;
+  fn_pressed = kb_buf[fn_row][fn_col];
 }
 
 absolute_time_t last_update_start_time = {0}; //nil_time is {0}
