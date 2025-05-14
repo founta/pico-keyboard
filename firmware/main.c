@@ -45,7 +45,18 @@ void press(uint8_t k)
   key_codes[num_keys_pressed++] = k;
 }
 
-bool fn_pressed = false;
+//Two function buttons
+// one function pressed will convert numbers to F1, F2, etc and also some
+// keys to arrow keys
+// both functions pressed will turn the arrow key keys into home, end, pgup, pgdown respectively to their direction
+#define FN_KEY (0)
+bool fn_pressed = false, fn_lock = false; //press both shift and a FN key to toggle locking it
+const int fn_row = 2, fn_col = 6;
+
+#define DOUBLE_FN (0)
+bool double_fn_pressed = false, double_fn_lock = false;
+const int double_fn_row = 1, double_fn_col = 6;
+
 
 // const char* kb[num_rows][num_cols] = {
 //{"esc" , "9"   , "0"   , "1"   , "5"   , "7"   , ""    , "6"   , "2"   , "3"   , "8"   , "4"   , "del" , ""    , ""    , ""    , ""    , "" },
@@ -59,18 +70,18 @@ bool fn_pressed = false;
 //TODO macros
 void (*kb_func[num_rows][num_cols]) (uint8_t) = {
   {&press, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
-  {&press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
+  {&press, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
   {&modif, &press, &press, &press, &press, &press, NULL  , &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
   {NULL  , NULL  , &press, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL  , NULL  , NULL},
   {&modif, &press, &press, &press, &modif, &press, &press, &press, &press, &press, &press, &press, &press, NULL  , NULL  , NULL  , NULL  , NULL},
 };
 
 #define KB_MATRIX { \
-  {HID_KEY_ESCAPE            , HID_KEY_9, HID_KEY_0    , HID_KEY_1     , HID_KEY_5                  , HID_KEY_7  , 0                   , HID_KEY_6        , HID_KEY_2        , HID_KEY_3           , HID_KEY_8            , HID_KEY_4         , HID_KEY_DELETE   , 0, 0, 0, 0, 0}, \
-  {HID_KEY_CAPS_LOCK         , HID_KEY_J, HID_KEY_F    , HID_KEY_M     , HID_KEY_P                  , HID_KEY_V  , HID_KEY_PRINT_SCREEN, HID_KEY_SEMICOLON, HID_KEY_GRAVE    , HID_KEY_Z           , HID_KEY_SLASH        , HID_KEY_APOSTROPHE, HID_KEY_BACKSLASH, 0, 0, 0, 0, 0}, \
-  {KEYBOARD_MODIFIER_LEFTALT , HID_KEY_R, HID_KEY_S    , HID_KEY_N     , HID_KEY_D                  , HID_KEY_B  , 0                   , HID_KEY_MINUS    , HID_KEY_A        , HID_KEY_E           , HID_KEY_I            , HID_KEY_H         , HID_KEY_Q        , 0, 0, 0, 0, 0}, \
-  {0                         , 0        , HID_KEY_G    , HID_KEY_L     , HID_KEY_C                  , HID_KEY_W  , HID_KEY_BACKSPACE   , HID_KEY_EQUAL    , HID_KEY_U        , HID_KEY_O           , HID_KEY_Y            , 0                 , 0                , 0, 0, 0, 0, 0}, \
-  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_X, HID_KEY_COMMA, HID_KEY_PERIOD, KEYBOARD_MODIFIER_LEFTSHIFT, HID_KEY_TAB, HID_KEY_TAB         , HID_KEY_SPACE    , HID_KEY_ENTER    , HID_KEY_BRACKET_LEFT, HID_KEY_BRACKET_RIGHT, HID_KEY_K         , HID_KEY_GUI_LEFT , 0, 0, 0, 0, 0}  \
+  {HID_KEY_ESCAPE            , HID_KEY_9, HID_KEY_0    , HID_KEY_1     , HID_KEY_5                  , HID_KEY_7    , 0                   , HID_KEY_6        , HID_KEY_2        , HID_KEY_3           , HID_KEY_8            , HID_KEY_4         , HID_KEY_DELETE   , 0, 0, 0, 0, 0}, \
+  {HID_KEY_CAPS_LOCK         , HID_KEY_J, HID_KEY_F    , HID_KEY_M     , HID_KEY_P                  , HID_KEY_V    , DOUBLE_FN           , HID_KEY_SEMICOLON, HID_KEY_GRAVE    , HID_KEY_Z           , HID_KEY_SLASH        , HID_KEY_APOSTROPHE, HID_KEY_BACKSLASH, 0, 0, 0, 0, 0}, \
+  {KEYBOARD_MODIFIER_LEFTALT , HID_KEY_R, HID_KEY_S    , HID_KEY_N     , HID_KEY_D                  , HID_KEY_B    , FN_KEY              , HID_KEY_MINUS    , HID_KEY_A        , HID_KEY_E           , HID_KEY_I            , HID_KEY_H         , HID_KEY_Q        , 0, 0, 0, 0, 0}, \
+  {0                         , 0        , HID_KEY_G    , HID_KEY_L     , HID_KEY_C                  , HID_KEY_W    , HID_KEY_BACKSPACE   , HID_KEY_EQUAL    , HID_KEY_U        , HID_KEY_O           , HID_KEY_Y            , 0                 , 0                , 0, 0, 0, 0, 0}, \
+  {KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_X, HID_KEY_COMMA, HID_KEY_PERIOD, KEYBOARD_MODIFIER_LEFTSHIFT, HID_KEY_SPACE, HID_KEY_TAB         , HID_KEY_T        , HID_KEY_ENTER    , HID_KEY_BRACKET_LEFT, HID_KEY_BRACKET_RIGHT, HID_KEY_K         , HID_KEY_GUI_LEFT , 0, 0, 0, 0, 0}  \
 }
 //note HID_KEY_GRAVE for ` and ~ . HID_KEY_GUI_LEFT == windows key
 
@@ -78,24 +89,55 @@ uint8_t kb_vals[num_rows][num_cols] = KB_MATRIX;
 
 // by default, keys act the same as usual while the function key is pressed
 uint8_t fn_vals[num_rows][num_cols] = KB_MATRIX;
+uint8_t double_fn_vals[num_rows][num_cols] = KB_MATRIX;
 
 void init_fn_vals()
 {
+  #define SET_BOTH_FN_VALS(I,J, VAL) \
+  do {                               \
+    fn_vals[I][J] = VAL;             \
+    double_fn_vals[I][J] = VAL;      \
+  } while (0)
+
   //number keys turn into corresponding function keys
-  fn_vals[0][1]  = HID_KEY_F9;
-  fn_vals[0][2]  = HID_KEY_F10;
-  fn_vals[0][3]  = HID_KEY_F1;
-  fn_vals[0][4]  = HID_KEY_F5;
-  fn_vals[0][5]  = HID_KEY_F7;
-  fn_vals[0][7]  = HID_KEY_F6;
-  fn_vals[0][8]  = HID_KEY_F2;
-  fn_vals[0][9]  = HID_KEY_F3;
-  fn_vals[0][10] = HID_KEY_F8;
-  fn_vals[0][11] = HID_KEY_F4;
+  SET_BOTH_FN_VALS(0,1,  HID_KEY_F9);
+  SET_BOTH_FN_VALS(0,2,  HID_KEY_F10);
+  SET_BOTH_FN_VALS(0,3,  HID_KEY_F1);
+  SET_BOTH_FN_VALS(0,4,  HID_KEY_F5);
+  SET_BOTH_FN_VALS(0,5,  HID_KEY_F7);
+  SET_BOTH_FN_VALS(0,7,  HID_KEY_F6);
+  SET_BOTH_FN_VALS(0,8,  HID_KEY_F2);
+  SET_BOTH_FN_VALS(0,9,  HID_KEY_F3);
+  SET_BOTH_FN_VALS(0,10, HID_KEY_F8);
+  SET_BOTH_FN_VALS(0,11, HID_KEY_F4);
   //escape becomes f11
-  fn_vals[0][0] = HID_KEY_F11;
+  SET_BOTH_FN_VALS(0,0,  HID_KEY_F11);
   //del becomes F12
-  fn_vals[0][12] = HID_KEY_F12;
+  SET_BOTH_FN_VALS(0,12, HID_KEY_F12);
+
+  //FN(P) becomes printscreen
+  SET_BOTH_FN_VALS(1,4,  HID_KEY_PRINT_SCREEN);
+
+  //[ and ] become volume down and volume up, respectively
+  SET_BOTH_FN_VALS(4,9,  HID_KEY_VOLUME_UP);
+  SET_BOTH_FN_VALS(4,10, HID_KEY_VOLUME_DOWN);
+
+
+  //arrow keys -- < > C and L become 
+  // left, down, right, and up arrows, respectively,
+  // when one function key is pressed
+  fn_vals[4][2] = HID_KEY_ARROW_LEFT;
+  fn_vals[4][3] = HID_KEY_ARROW_DOWN;
+  fn_vals[3][4] = HID_KEY_ARROW_RIGHT;
+  fn_vals[3][3] = HID_KEY_ARROW_UP;
+
+  //if pressing both function keys, the same keys as above turn into 
+  // home, pg down, end, and page up,
+  // respectively, when both functions are pressed
+  double_fn_vals[4][2] = HID_KEY_HOME;
+  double_fn_vals[4][3] = HID_KEY_PAGE_DOWN;
+  double_fn_vals[3][4] = HID_KEY_END;
+  double_fn_vals[3][3] = HID_KEY_PAGE_UP;
 }
 
 uint8_t kb_buf[num_rows][num_cols] = {0};
@@ -125,17 +167,31 @@ void scan_kb_matrix()
         void (*func)(uint8_t) = kb_func[i][j];
         if (func)
         {
-          func(fn_pressed ? fn_vals[i][j] : kb_vals[i][j]);
+          uint8_t val = kb_vals[i][j];
+          if (double_fn_lock || (double_fn_pressed && fn_pressed))
+            val = double_fn_vals[i][j];
+          else if (fn_lock || double_fn_pressed || fn_pressed)
+            val = fn_vals[i][j];
+
+          func(val);
         }
       }
 
     }
     gpio_put(row, false);
   }
+}
 
-  int fn_row = 2;
-  int fn_col = 6;
+void check_function_keys()
+{
+  bool shift_pressed = kb_buf[4][4];
+  if (shift_pressed && kb_buf[fn_row][fn_col] && !fn_pressed) //on key down
+    fn_lock = !fn_lock;
+  if (shift_pressed && kb_buf[double_fn_row][double_fn_row] && !double_fn_pressed) //on key down
+    double_fn_lock = !double_fn_lock;
+
   fn_pressed = kb_buf[fn_row][fn_col];
+  double_fn_pressed = kb_buf[double_fn_row][double_fn_col];
 }
 
 absolute_time_t last_update_start_time = {0}; //nil_time is {0}
@@ -152,6 +208,7 @@ void handle_hid()
 
   //scan the keyboard matrix (takes ~75us)
   scan_kb_matrix();
+  check_function_keys();
 
   //remote wakeup
   if (tud_suspended())
