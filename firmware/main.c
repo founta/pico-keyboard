@@ -168,9 +168,9 @@ void scan_kb_matrix()
         if (func)
         {
           uint8_t val = kb_vals[i][j];
-          if (double_fn_lock || (double_fn_pressed && fn_pressed))
+          if ((double_fn_lock && fn_lock) || (double_fn_pressed && fn_pressed))
             val = double_fn_vals[i][j];
-          else if (fn_lock || double_fn_pressed || fn_pressed)
+          else if (fn_lock || double_fn_lock || double_fn_pressed || fn_pressed)
             val = fn_vals[i][j];
 
           func(val);
@@ -185,9 +185,11 @@ void scan_kb_matrix()
 void check_function_keys()
 {
   bool shift_pressed = kb_buf[4][4];
-  if (shift_pressed && kb_buf[fn_row][fn_col] && !fn_pressed) //on key down
+  if (shift_pressed && 
+      kb_buf[fn_row][fn_col] && !fn_pressed) //on key down
     fn_lock = !fn_lock;
-  if (shift_pressed && kb_buf[double_fn_row][double_fn_row] && !double_fn_pressed) //on key down
+  if (shift_pressed && 
+      kb_buf[double_fn_row][double_fn_col] && !double_fn_pressed) //on key down
     double_fn_lock = !double_fn_lock;
 
   fn_pressed = kb_buf[fn_row][fn_col];
